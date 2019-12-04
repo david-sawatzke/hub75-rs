@@ -3,8 +3,15 @@ name = "hub75"
 version = "0.1.0"
 authors = ["David Sawatzke <david-sawatzke@users.noreply.github.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories = ["embedded", "no-std"]
+keywords = [
+    "embedded-graphics",
+    "embedded-hal-driver"]
+description = "A driver for hub75 rgb matrix displays"
+documentation = "https://docs.rs/crate/hub75"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/david-sawatzke/hub75-rs"
 
 [dependencies]
 embedded-hal = "0.2.3"
