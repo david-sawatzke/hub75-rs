@@ -7,16 +7,16 @@ use embedded_hal::digital::v2::OutputPin;
 // - https://github.com/adafruit/RGB-matrix-Panel/blob/master/RGBmatrixPanel.cpp
 // - https://www.mikrocontroller.net/topic/452187 (sorry, german only)
 
-// # How this works
-// This display is essentially split in half, with the top 16 rows being
-// controlled by one set of shift registers (r1, g1, b1) and the botton 16
-// rows by another set (r2, g2, b2). So, the best way to update it is to
-// show one of the botton and top rows in tandem. The row (between 0-15) is then
-// selected by the A, B, C, D pins, which are just, as one might expect, the bits 0 to 3.
-//
-// The display doesn't really do brightness, so we have to do it ourselves, by
-// rendering the same frame multiple times, with some pixels being turned of if
-// they are darker (pwm)
+/// # Theory of Operation
+/// This display is essentially split in half, with the top 16 rows being
+/// controlled by one set of shift registers (r1, g1, b1) and the botton 16
+/// rows by another set (r2, g2, b2). So, the best way to update it is to
+/// show one of the botton and top rows in tandem. The row (between 0-15) is then
+/// selected by the A, B, C, D pins, which are just, as one might expect, the bits 0 to 3.
+///
+/// The display doesn't really do brightness, so we have to do it ourselves, by
+/// rendering the same frame multiple times, with some pixels being turned of if
+/// they are darker (pwm)
 
 pub struct Hub75<PINS> {
     //       r1, g1, b1, r2, g2, b2, column, row
@@ -26,6 +26,9 @@ pub struct Hub75<PINS> {
     pins: PINS,
 }
 
+/// A trait, so that it's easier to reason about the pins
+/// Implemented for a tuple `(r1, g1, b1, r2, g2, b2, a, b, c, d, clk, lat, oe)`
+/// with every element implementing `OutputPin`
 pub trait Outputs {
     type R1: OutputPin;
     type G1: OutputPin;
