@@ -19,4 +19,20 @@ Pinout: ![Hub 75 interface][hub75]
   bits, it isn't shown at all. For example, when using 3 color bits, having a
   value less than 124 leads to nothing being shown (as it's then gamma corrected
   to 31, which is less than 1<<5).
-[hub75]: ./img/hub75.jpg
+
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+
+at your option.
+
+## Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
+
+[hub75]: ./hub75.jpg
