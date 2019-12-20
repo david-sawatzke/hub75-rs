@@ -1,6 +1,6 @@
 # HUB75
 
-![Example image](./example.jpg)
+![Example image](example.jpg)
 
 Library for controlling the cheap RGB matrix displays with the interface colloquially
 known as hub75 with `embedded-graphics` & `embedded-hal` impls in rust.
@@ -8,12 +8,12 @@ known as hub75 with `embedded-graphics` & `embedded-hal` impls in rust.
 Currently only supports panels with a resolution of 64x32 (tested on panel "P3-(2121)64*32-16S-D10").
 
 See
-[rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md)
+(rpi-rgb-led-matrix)[https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md]
 for hookup instructions.
 
 Pinout:
 
-![Hub 75 interface](./hub75.jpg)
+![Hub 75 interface](hub75.jpg)
 
 ## Problem Solving
 - It flickers
