@@ -26,6 +26,26 @@ Pinout:
   value less than 124 leads to nothing being shown (as it's then gamma corrected
   to 31, which is less than 1<<5).
 
+## Improving perforance
+There are many ways to further improve performance, even being able to achieve 8 bit
+color depth, unfortunately it doesn't seem possible with the current embedded-hal abstractions:
+
+- Use binary code modulation and adjust oe time with a one-shot timer
+
+  See [LED dimming using Binary Code
+  Modulation](http://www.batsocks.co.uk/readme/art_bcm_1.htm) for further
+  explanations on how binary code modulation works.
+
+- Prerender the data, so shifting the data out is faster
+
+  The idea is that the gpio state is precomputed and then just copied to the
+  gpio output register. To do this, r1, r2, g1, g2, b1, b2 all need to be
+  connected to the same port.
+  Combined with binary code modulation, this will take more ram, but be much
+  faster.
+  The output loop can then be replaced with the dma, which will lead to greatly
+  reduced cpu usage and very high refresh rates.
+
 ## License
 
 Licensed under either of
