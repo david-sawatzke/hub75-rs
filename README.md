@@ -8,7 +8,7 @@ known as hub75 with `embedded-graphics` & `embedded-hal` impls in rust.
 Currently only supports panels with a resolution of 64x32 (tested on panel "P3-(2121)64*32-16S-D10").
 
 See
-[rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md])
+[rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md)
 for hookup instructions.
 
 Pinout:
