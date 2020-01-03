@@ -47,8 +47,7 @@ color depth, unfortunately it doesn't seem possible with the current embedded-ha
   reduced cpu usage and very high refresh rates.
 
 You might want to take a look at
-[an mcu specific implementation that uses most of these things]
-(https://github.com/david-sawatzke/36c3_led_stuff/blob/b687925f00670082cba8eab4e593b8e0da07592b/c3_display/src/hub75dma.rs)
+[an mcu specific implementation that uses most of these things](https://github.com/david-sawatzke/36c3_led_stuff/blob/b687925f00670082cba8eab4e593b8e0da07592b/c3_display/src/hub75dma.rs)
 for inspiration.
 
 ## License
