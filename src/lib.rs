@@ -238,6 +238,88 @@ impl<PINS: Outputs> Hub75<PINS> {
         self.pins.oe().set_high()?;
         Ok(())
     }
+
+    /// Output the buffer to the display, displaying the color bits in the specified range
+    /// `low_bit..high_bit` (`low_bit` inclusive, `high_bit` exclusive).
+    ///
+    /// This lets us use Binary Code Modulation to render the display.
+    pub fn output_bits<DELAY: DelayUs<u8>>(
+        &mut self,
+        delay: &mut DELAY,
+        low_bit: u8,
+        high_bit: u8,
+    ) -> Result<(), PINS::Error> {
+        let mask = ((1 << high_bit as u16) - 1) as u8 & !((1 << low_bit as u16) - 1) as u8;
+
+        // PWM cycle
+        for (count, row) in self.data.iter().enumerate() {
+            for element in row.iter() {
+                if element.0 & mask != 0 {
+                    self.pins.r1().set_high()?;
+                } else {
+                    self.pins.r1().set_low()?;
+                }
+                if element.1 & mask != 0 {
+                    self.pins.g1().set_high()?;
+                } else {
+                    self.pins.g1().set_low()?;
+                }
+                if element.2 & mask != 0 {
+                    self.pins.b1().set_high()?;
+                } else {
+                    self.pins.b1().set_low()?;
+                }
+                if element.3 & mask != 0 {
+                    self.pins.r2().set_high()?;
+                } else {
+                    self.pins.r2().set_low()?;
+                }
+                if element.4 & mask != 0 {
+                    self.pins.g2().set_high()?;
+                } else {
+                    self.pins.g2().set_low()?;
+                }
+                if element.5 & mask != 0 {
+                    self.pins.b2().set_high()?;
+                } else {
+                    self.pins.b2().set_low()?;
+                }
+                self.pins.clk().set_high()?;
+                self.pins.clk().set_low()?;
+            }
+            self.pins.oe().set_high()?;
+            // Prevents ghosting, no idea why
+            delay.delay_us(2);
+            self.pins.lat().set_low()?;
+            delay.delay_us(2);
+            self.pins.lat().set_high()?;
+            // Select row
+            if count & 1 != 0 {
+                self.pins.a().set_high()?;
+            } else {
+                self.pins.a().set_low()?;
+            }
+            if count & 2 != 0 {
+                self.pins.b().set_high()?;
+            } else {
+                self.pins.b().set_low()?;
+            }
+            if count & 4 != 0 {
+                self.pins.c().set_high()?;
+            } else {
+                self.pins.c().set_low()?;
+            }
+            if count & 8 != 0 {
+                self.pins.d().set_high()?;
+            } else {
+                self.pins.d().set_low()?;
+            }
+            delay.delay_us(2);
+            self.pins.oe().set_low()?;
+        }
+        Ok(())
+    }
+
     /// Clear the output
     ///
     /// It's a bit faster than using the embedded_graphics interface
