@@ -253,15 +253,13 @@ impl<PINS: Outputs> Hub75<PINS> {
 }
 
 use embedded_graphics::{
-    drawable::{Dimensions, Pixel},
-    pixelcolor::Rgb565,
-    Drawing, SizedDrawing,
+    drawable::Pixel, geometry::Size, pixelcolor::Rgb565, prelude::*, DrawTarget,
 };
-impl<PINS: Outputs> Drawing<Rgb565> for Hub75<PINS> {
-    fn draw<T>(&mut self, item_pixels: T)
-    where
-        T: IntoIterator<Item = Pixel<Rgb565>>,
-    {
+
+impl<PINS: Outputs> DrawTarget<Rgb565> for Hub75<PINS> {
+    type Error = core::convert::Infallible;
+
+    fn draw_pixel(&mut self, item: Pixel<Rgb565>) -> Result<(), Self::Error> {
         // This table remaps linear input values
         // (the numbers we’d like to use; e.g. 127 = half brightness)
         // to nonlinear gamma-corrected output values
@@ -281,28 +279,26 @@ impl<PINS: Outputs> Drawing<Rgb565> for Hub75<PINS> {
             182, 184, 186, 189, 191, 193, 196, 198, 200, 203, 205, 208, 210, 213, 215, 218, 220,
             223, 225, 228, 231, 233, 236, 239, 241, 244, 247, 249, 252, 255,
         ];
-        for Pixel(coord, color) in item_pixels {
-            let row = coord[1] % 16;
-            let data = &mut self.data[row as usize][coord[0] as usize];
-            if coord[1] >= 16 {
-                data.3 = GAMMA8[color.r() as usize];
-                data.4 = GAMMA8[color.g() as usize];
-                data.5 = GAMMA8[color.b() as usize];
-            } else {
-                data.0 = GAMMA8[color.r() as usize];
-                data.1 = GAMMA8[color.g() as usize];
-                data.2 = GAMMA8[color.b() as usize];
-            }
-        }
-    }
-}
 
-// TODO Does it make sense to include this?
-impl<PINS: Outputs> SizedDrawing<Rgb565> for Hub75<PINS> {
-    fn draw_sized<T>(&mut self, item_pixels: T)
-    where
-        T: IntoIterator<Item = Pixel<Rgb565>> + Dimensions,
-    {
-        self.draw(item_pixels);
+        let Pixel(coord, color) = item;
+
+        let row = coord[1] % 16;
+        let data = &mut self.data[row as usize][coord[0] as usize];
+        if coord[1] >= 16 {
+            data.3 = GAMMA8[color.r() as usize];
+            data.4 = GAMMA8[color.g() as usize];
+            data.5 = GAMMA8[color.b() as usize];
+        } else {
+            data.0 = GAMMA8[color.r() as usize];
+            data.1 = GAMMA8[color.g() as usize];
+            data.2 = GAMMA8[color.b() as usize];
+        }
+
+        Ok(())
+    }
+
+    fn size(&self) -> Size {
+        // TODO: dynamic size?
+        Size::new(64, 32)
     }
 }
