@@ -252,14 +252,12 @@ impl<PINS: Outputs> Hub75<PINS> {
     }
 }
 
-use embedded_graphics::{
-    drawable::Pixel, geometry::Size, pixelcolor::Rgb565, prelude::*, DrawTarget,
-};
+use embedded_graphics::{drawable::Pixel, geometry::Size, prelude::*, DrawTarget};
 
-impl<PINS: Outputs> DrawTarget<Rgb565> for Hub75<PINS> {
+impl<PINS: Outputs, C: RgbColor> DrawTarget<C> for Hub75<PINS> {
     type Error = core::convert::Infallible;
 
-    fn draw_pixel(&mut self, item: Pixel<Rgb565>) -> Result<(), Self::Error> {
+    fn draw_pixel(&mut self, item: Pixel<C>) -> Result<(), Self::Error> {
         // This table remaps linear input values
         // (the numbers we’d like to use; e.g. 127 = half brightness)
         // to nonlinear gamma-corrected output values
@@ -285,13 +283,13 @@ impl<PINS: Outputs> DrawTarget<Rgb565> for Hub75<PINS> {
         let row = coord[1] % 16;
         let data = &mut self.data[row as usize][coord[0] as usize];
         if coord[1] >= 16 {
-            data.3 = GAMMA8[color.r() as usize];
-            data.4 = GAMMA8[color.g() as usize];
-            data.5 = GAMMA8[color.b() as usize];
+            data.3 = GAMMA8[color.r() as usize * 255 / C::MAX_R as usize];
+            data.4 = GAMMA8[color.g() as usize * 255 / C::MAX_G as usize];
+            data.5 = GAMMA8[color.b() as usize * 255 / C::MAX_B as usize];
         } else {
-            data.0 = GAMMA8[color.r() as usize];
-            data.1 = GAMMA8[color.g() as usize];
-            data.2 = GAMMA8[color.b() as usize];
+            data.0 = GAMMA8[color.r() as usize * 255 / C::MAX_R as usize];
+            data.1 = GAMMA8[color.g() as usize * 255 / C::MAX_G as usize];
+            data.2 = GAMMA8[color.b() as usize * 255 / C::MAX_B as usize];
         }
 
         Ok(())
