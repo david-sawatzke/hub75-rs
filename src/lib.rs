@@ -30,19 +30,20 @@ pub struct Hub75<PINS> {
 /// Implemented for a tuple `(r1, g1, b1, r2, g2, b2, a, b, c, d, clk, lat, oe)`
 /// with every element implementing `OutputPin`
 pub trait Outputs {
-    type R1: OutputPin;
-    type G1: OutputPin;
-    type B1: OutputPin;
-    type R2: OutputPin;
-    type G2: OutputPin;
-    type B2: OutputPin;
-    type A: OutputPin;
-    type B: OutputPin;
-    type C: OutputPin;
-    type D: OutputPin;
-    type CLK: OutputPin;
-    type LAT: OutputPin;
-    type OE: OutputPin;
+    type Error;
+    type R1: OutputPin<Error = Self::Error>;
+    type G1: OutputPin<Error = Self::Error>;
+    type B1: OutputPin<Error = Self::Error>;
+    type R2: OutputPin<Error = Self::Error>;
+    type G2: OutputPin<Error = Self::Error>;
+    type B2: OutputPin<Error = Self::Error>;
+    type A: OutputPin<Error = Self::Error>;
+    type B: OutputPin<Error = Self::Error>;
+    type C: OutputPin<Error = Self::Error>;
+    type D: OutputPin<Error = Self::Error>;
+    type CLK: OutputPin<Error = Self::Error>;
+    type LAT: OutputPin<Error = Self::Error>;
+    type OE: OutputPin<Error = Self::Error>;
     fn r1(&mut self) -> &mut Self::R1;
     fn g1(&mut self) -> &mut Self::G1;
     fn b1(&mut self) -> &mut Self::B1;
@@ -59,21 +60,23 @@ pub trait Outputs {
 }
 
 impl<
-        R1: OutputPin,
-        G1: OutputPin,
-        B1: OutputPin,
-        R2: OutputPin,
-        G2: OutputPin,
-        B2: OutputPin,
-        A: OutputPin,
-        B: OutputPin,
-        C: OutputPin,
-        D: OutputPin,
-        CLK: OutputPin,
-        LAT: OutputPin,
-        OE: OutputPin,
+        E,
+        R1: OutputPin<Error = E>,
+        G1: OutputPin<Error = E>,
+        B1: OutputPin<Error = E>,
+        R2: OutputPin<Error = E>,
+        G2: OutputPin<Error = E>,
+        B2: OutputPin<Error = E>,
+        A: OutputPin<Error = E>,
+        B: OutputPin<Error = E>,
+        C: OutputPin<Error = E>,
+        D: OutputPin<Error = E>,
+        CLK: OutputPin<Error = E>,
+        LAT: OutputPin<Error = E>,
+        OE: OutputPin<Error = E>,
     > Outputs for (R1, G1, B1, R2, G2, B2, A, B, C, D, CLK, LAT, OE)
 {
+    type Error = E;
     type R1 = R1;
     type G1 = G1;
     type B1 = B1;
@@ -157,82 +160,83 @@ impl<PINS: Outputs> Hub75<PINS> {
     ///
     /// Takes some time and should be called quite often, otherwise the output
     /// will flicker
-    pub fn output<DELAY: DelayUs<u8>>(&mut self, delay: &mut DELAY) {
+    pub fn output<DELAY: DelayUs<u8>>(&mut self, delay: &mut DELAY) -> Result<(), PINS::Error> {
         // Enable the output
         // The previous last row will continue to display
-        self.pins.oe().set_low().ok();
+        self.pins.oe().set_low()?;
         // PWM cycle
         for mut brightness in 0..self.brightness_count {
             brightness = (brightness + 1).saturating_mul(self.brightness_step);
             for (count, row) in self.data.iter().enumerate() {
                 for element in row.iter() {
                     if element.0 >= brightness {
-                        self.pins.r1().set_high().ok();
+                        self.pins.r1().set_high()?;
                     } else {
-                        self.pins.r1().set_low().ok();
+                        self.pins.r1().set_low()?;
                     }
                     if element.1 >= brightness {
-                        self.pins.g1().set_high().ok();
+                        self.pins.g1().set_high()?;
                     } else {
-                        self.pins.g1().set_low().ok();
+                        self.pins.g1().set_low()?;
                     }
                     if element.2 >= brightness {
-                        self.pins.b1().set_high().ok();
+                        self.pins.b1().set_high()?;
                     } else {
-                        self.pins.b1().set_low().ok();
+                        self.pins.b1().set_low()?;
                     }
                     if element.3 >= brightness {
-                        self.pins.r2().set_high().ok();
+                        self.pins.r2().set_high()?;
                     } else {
-                        self.pins.r2().set_low().ok();
+                        self.pins.r2().set_low()?;
                     }
                     if element.4 >= brightness {
-                        self.pins.g2().set_high().ok();
+                        self.pins.g2().set_high()?;
                     } else {
-                        self.pins.g2().set_low().ok();
+                        self.pins.g2().set_low()?;
                     }
                     if element.5 >= brightness {
-                        self.pins.b2().set_high().ok();
+                        self.pins.b2().set_high()?;
                     } else {
-                        self.pins.b2().set_low().ok();
+                        self.pins.b2().set_low()?;
                     }
-                    self.pins.clk().set_high().ok();
-                    self.pins.clk().set_low().ok();
+                    self.pins.clk().set_high()?;
+                    self.pins.clk().set_low()?;
                 }
-                self.pins.oe().set_high().ok();
+                self.pins.oe().set_high()?;
                 // Prevents ghosting, no idea why
                 delay.delay_us(2);
-                self.pins.lat().set_low().ok();
+                self.pins.lat().set_low()?;
                 delay.delay_us(2);
-                self.pins.lat().set_high().ok();
+                self.pins.lat().set_high()?;
                 // Select row
                 if count & 1 != 0 {
-                    self.pins.a().set_high().ok();
+                    self.pins.a().set_high()?;
                 } else {
-                    self.pins.a().set_low().ok();
+                    self.pins.a().set_low()?;
                 }
                 if count & 2 != 0 {
-                    self.pins.b().set_high().ok();
+                    self.pins.b().set_high()?;
                 } else {
-                    self.pins.b().set_low().ok();
+                    self.pins.b().set_low()?;
                 }
                 if count & 4 != 0 {
-                    self.pins.c().set_high().ok();
+                    self.pins.c().set_high()?;
                 } else {
-                    self.pins.c().set_low().ok();
+                    self.pins.c().set_low()?;
                 }
                 if count & 8 != 0 {
-                    self.pins.d().set_high().ok();
+                    self.pins.d().set_high()?;
                 } else {
-                    self.pins.d().set_low().ok();
+                    self.pins.d().set_low()?;
                 }
                 delay.delay_us(2);
-                self.pins.oe().set_low().ok();
+                self.pins.oe().set_low()?;
             }
         }
         // Disable the output
         // Prevents one row from being much brighter than the others
-        self.pins.oe().set_high().ok();
+        self.pins.oe().set_high()?;
+        Ok(())
     }
     /// Clear the output
     ///
