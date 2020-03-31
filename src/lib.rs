@@ -239,17 +239,16 @@ impl<PINS: Outputs> Hub75<PINS> {
         Ok(())
     }
 
-    /// Output the buffer to the display, displaying the color bits in the specified range
-    /// `low_bit..high_bit` (`low_bit` inclusive, `high_bit` exclusive).
+    /// Output the buffer to the display, displaying the specified color bit.
     ///
-    /// This lets us use Binary Code Modulation to render the display.
-    pub fn output_bits<DELAY: DelayUs<u8>>(
+    /// This lets us use Binary Code Modulation to render the display.  You should use a delay
+    /// between each call to this function that is proportional to `1 << bit`.
+    pub fn output_bit<DELAY: DelayUs<u8>>(
         &mut self,
         delay: &mut DELAY,
-        low_bit: u8,
-        high_bit: u8,
+        bit: u8,
     ) -> Result<(), PINS::Error> {
-        let mask = ((1 << high_bit as u16) - 1) as u8 & !((1 << low_bit as u16) - 1) as u8;
+        let mask = 1 << bit;
 
         // PWM cycle
         for (count, row) in self.data.iter().enumerate() {
