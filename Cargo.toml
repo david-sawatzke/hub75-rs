@@ -15,4 +15,4 @@ repository = "https://github.com/david-sawatzke/hub75-rs"
 
 [dependencies]
 embedded-hal = "0.2.3"
-embedded-graphics = "0.5.2"
+embedded-graphics = "0.6.0"
