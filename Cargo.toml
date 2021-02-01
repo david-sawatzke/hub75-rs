@@ -16,3 +16,6 @@ repository = "https://github.com/david-sawatzke/hub75-rs"
 [dependencies]
 embedded-hal = "0.2.3"
 embedded-graphics = "0.5.2"
+
+[features]
+size-64x64 = []
