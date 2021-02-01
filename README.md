@@ -1,11 +1,14 @@
 # HUB75
 
 ![Example image](example.jpg)
+![Example 64x64 image](example-64x64.jpg)
 
 Library for controlling the cheap RGB matrix displays with the interface colloquially
 known as hub75 with `embedded-graphics` & `embedded-hal` impls in rust.
 
-Currently only supports panels with a resolution of 64x32 (tested on panel "P3-(2121)64*32-16S-D10").
+Main support for panels with a resolution of 64x32 (tested on panel "P3-(2121)64*32-16S-D10").
+
+64x64 support when using `features = ["size-64x64"]` (tested on panel P3-(2121)64*64)
 
 See
 [rpi-rgb-led-matrix](https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/wiring.md)
@@ -26,7 +29,7 @@ Pinout:
   value less than 124 leads to nothing being shown (as it's then gamma corrected
   to 31, which is less than 1<<5).
 
-## Improving perforance
+## Improving performance
 There are many ways to further improve performance, even being able to achieve 8 bit
 color depth, unfortunately it doesn't seem possible with the current embedded-hal abstractions:
 

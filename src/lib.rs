@@ -13,14 +13,20 @@ use embedded_hal::digital::v2::OutputPin;
 /// rows by another set (r2, g2, b2). So, the best way to update it is to
 /// show one of the botton and top rows in tandem. The row (between 0-15) is then
 /// selected by the A, B, C, D pins, which are just, as one might expect, the bits 0 to 3.
+/// Pin F is used by the 64x64 display to get 5 bit row addressing (1/32 row scan rate)
 ///
 /// The display doesn't really do brightness, so we have to do it ourselves, by
 /// rendering the same frame multiple times, with some pixels being turned of if
 /// they are darker (pwm)
 
+#[cfg(feature = "size-64x64")]
+const NUM_ROWS: usize = 32;
+#[cfg(not(feature = "size-64x64"))]
+const NUM_ROWS: usize = 16;
+
 pub struct Hub75<PINS> {
     //       r1, g1, b1, r2, g2, b2, column, row
-    data: [[(u8, u8, u8, u8, u8, u8); 64]; 32],
+    data: [[(u8, u8, u8, u8, u8, u8); 64]; NUM_ROWS],
     brightness_step: u8,
     brightness_count: u8,
     pins: PINS,
@@ -29,6 +35,7 @@ pub struct Hub75<PINS> {
 /// A trait, so that it's easier to reason about the pins
 /// Implemented for a tuple `(r1, g1, b1, r2, g2, b2, a, b, c, d, clk, lat, oe)`
 /// with every element implementing `OutputPin`
+/// f pin is needed for 64x64 matrix support
 pub trait Outputs {
     type Error;
     type R1: OutputPin<Error = Self::Error>;
@@ -41,6 +48,7 @@ pub trait Outputs {
     type B: OutputPin<Error = Self::Error>;
     type C: OutputPin<Error = Self::Error>;
     type D: OutputPin<Error = Self::Error>;
+    #[cfg(feature = "size-64x64")]
     type F: OutputPin<Error = Self::Error>;
     type CLK: OutputPin<Error = Self::Error>;
     type LAT: OutputPin<Error = Self::Error>;
@@ -55,12 +63,14 @@ pub trait Outputs {
     fn b(&mut self) -> &mut Self::B;
     fn c(&mut self) -> &mut Self::C;
     fn d(&mut self) -> &mut Self::D;
+    #[cfg(feature = "size-64x64")]
     fn f(&mut self) -> &mut Self::F;
     fn clk(&mut self) -> &mut Self::CLK;
     fn lat(&mut self) -> &mut Self::LAT;
     fn oe(&mut self) -> &mut Self::OE;
 }
 
+#[cfg(feature = "size-64x64")]
 impl<
         E,
         R1: OutputPin<Error = E>,
@@ -138,6 +148,79 @@ impl<
     }
 }
 
+#[cfg(not(feature = "size-64x64"))]
+impl<
+        E,
+        R1: OutputPin<Error = E>,
+        G1: OutputPin<Error = E>,
+        B1: OutputPin<Error = E>,
+        R2: OutputPin<Error = E>,
+        G2: OutputPin<Error = E>,
+        B2: OutputPin<Error = E>,
+        A: OutputPin<Error = E>,
+        B: OutputPin<Error = E>,
+        C: OutputPin<Error = E>,
+        D: OutputPin<Error = E>,
+        CLK: OutputPin<Error = E>,
+        LAT: OutputPin<Error = E>,
+        OE: OutputPin<Error = E>,
+    > Outputs for (R1, G1, B1, R2, G2, B2, A, B, C, D, CLK, LAT, OE)
+{
+    type Error = E;
+    type R1 = R1;
+    type G1 = G1;
+    type B1 = B1;
+    type R2 = R2;
+    type G2 = G2;
+    type B2 = B2;
+    type A = A;
+    type B = B;
+    type C = C;
+    type D = D;
+    type CLK = CLK;
+    type LAT = LAT;
+    type OE = OE;
+    fn r1(&mut self) -> &mut R1 {
+        &mut self.0
+    }
+    fn g1(&mut self) -> &mut G1 {
+        &mut self.1
+    }
+    fn b1(&mut self) -> &mut B1 {
+        &mut self.2
+    }
+    fn r2(&mut self) -> &mut R2 {
+        &mut self.3
+    }
+    fn g2(&mut self) -> &mut G2 {
+        &mut self.4
+    }
+    fn b2(&mut self) -> &mut B2 {
+        &mut self.5
+    }
+    fn a(&mut self) -> &mut A {
+        &mut self.6
+    }
+    fn b(&mut self) -> &mut B {
+        &mut self.7
+    }
+    fn c(&mut self) -> &mut C {
+        &mut self.8
+    }
+    fn d(&mut self) -> &mut D {
+        &mut self.9
+    }
+    fn clk(&mut self) -> &mut CLK {
+        &mut self.10
+    }
+    fn lat(&mut self) -> &mut LAT {
+        &mut self.11
+    }
+    fn oe(&mut self) -> &mut OE {
+        &mut self.12
+    }
+}
+
 impl<PINS: Outputs> Hub75<PINS> {
     /// Create a new hub instance
     ///
@@ -152,7 +235,7 @@ impl<PINS: Outputs> Hub75<PINS> {
     /// 3-4 bits are usually a good choice.
     pub fn new(pins: PINS, brightness_bits: u8) -> Self {
         assert!(brightness_bits < 9 && brightness_bits > 0);
-        let data = [[(0, 0, 0, 0, 0, 0); 64]; 32];
+        let data = [[(0, 0, 0, 0, 0, 0); 64]; NUM_ROWS];
         let brightness_step = 1 << (8 - brightness_bits);
         let brightness_count = ((1 << brightness_bits as u16) - 1) as u8;
         Self {
@@ -236,6 +319,7 @@ impl<PINS: Outputs> Hub75<PINS> {
                 } else {
                     self.pins.d().set_low()?;
                 }
+                #[cfg(feature = "size-64x64")]
                 if count & 16 != 0 {
                     self.pins.f().set_high()?;
                 } else {
@@ -298,9 +382,9 @@ impl<PINS: Outputs> Drawing<Rgb565> for Hub75<PINS> {
             223, 225, 228, 231, 233, 236, 239, 241, 244, 247, 249, 252, 255,
         ];
         for Pixel(coord, color) in item_pixels {
-            let row = coord[1] % 32;
+            let row = coord[1] % NUM_ROWS as u32;
             let data = &mut self.data[row as usize][coord[0] as usize];
-            if coord[1] >= 32 {
+            if coord[1] >= NUM_ROWS as u32 {
                 data.3 = GAMMA8[color.r() as usize];
                 data.4 = GAMMA8[color.g() as usize];
                 data.5 = GAMMA8[color.b() as usize];
