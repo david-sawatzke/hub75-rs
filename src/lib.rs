@@ -1,6 +1,4 @@
 #![no_std]
-use embedded_hal::blocking::delay::DelayUs;
-use embedded_hal::digital::v2::OutputPin;
 // Inspired by
 // - https://github.com/polyfloyd/ledcat/blob/master/src/device/hub75.rs
 // - https://github.com/mmou/led-marquee/blob/8c88531a6938edff6db829ca21c15304515874ea/src/hub.rs
@@ -18,15 +16,25 @@ use embedded_hal::digital::v2::OutputPin;
 /// The display doesn't really do brightness, so we have to do it ourselves, by
 /// rendering the same frame multiple times, with some pixels being turned of if
 /// they are darker (pwm)
+use embedded_graphics_core::{
+    draw_target::DrawTarget,
+    geometry::{OriginDimensions, Size},
+    pixelcolor::{Rgb565, RgbColor as _},
+    Pixel,
+};
+use embedded_hal::blocking::delay::DelayUs;
+use embedded_hal::digital::v2::OutputPin;
 
 #[cfg(feature = "size-64x64")]
 const NUM_ROWS: usize = 32;
 #[cfg(not(feature = "size-64x64"))]
 const NUM_ROWS: usize = 16;
 
+pub type DataRow = [(u8, u8, u8, u8, u8, u8); 64];
+
 pub struct Hub75<PINS> {
     //       r1, g1, b1, r2, g2, b2, column, row
-    data: [[(u8, u8, u8, u8, u8, u8); 64]; NUM_ROWS],
+    data: [DataRow; NUM_ROWS],
     brightness_step: u8,
     brightness_count: u8,
     pins: PINS,
@@ -352,39 +360,57 @@ impl<PINS: Outputs> Hub75<PINS> {
     }
 }
 
-use embedded_graphics::{
-    drawable::{Dimensions, Pixel},
-    pixelcolor::Rgb565,
-    Drawing, SizedDrawing,
-};
-impl<PINS: Outputs> Drawing<Rgb565> for Hub75<PINS> {
-    fn draw<T>(&mut self, item_pixels: T)
+pub type Error = &'static str;
+// This table remaps linear input values
+// (the numbers we’d like to use; e.g. 127 = half brightness)
+// to nonlinear gamma-corrected output values
+// (numbers producing the desired effect on the LED;
+// e.g. 36 = half brightness).
+const GAMMA8: [u8; 256] = [
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 5, 5, 5,
+    5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11, 12, 12, 13, 13, 13, 14,
+    14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22, 22, 23, 24, 24, 25, 25, 26, 27,
+    27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36, 37, 38, 39, 39, 40, 41, 42, 43, 44, 45, 46,
+    47, 48, 49, 50, 50, 51, 52, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 66, 67, 68, 69, 70, 72,
+    73, 74, 75, 77, 78, 79, 81, 82, 83, 85, 86, 87, 89, 90, 92, 93, 95, 96, 98, 99, 101, 102, 104,
+    105, 107, 109, 110, 112, 114, 115, 117, 119, 120, 122, 124, 126, 127, 129, 131, 133, 135, 137,
+    138, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 167, 169, 171, 173, 175,
+    177, 180, 182, 184, 186, 189, 191, 193, 196, 198, 200, 203, 205, 208, 210, 213, 215, 218, 220,
+    223, 225, 228, 231, 233, 236, 239, 241, 244, 247, 249, 252, 255,
+];
+
+impl<PINS> OriginDimensions for Hub75<PINS> {
+    fn size(&self) -> Size {
+        #[cfg(feature = "size-64x64")]
+        {
+            Size {
+                width: 64,
+                height: 64,
+            }
+        }
+        #[cfg(not(feature = "size-64x64"))]
+        {
+            Size {
+                width: 64,
+                height: 32,
+            }
+        }
+    }
+}
+
+impl<PINS: Outputs> DrawTarget for Hub75<PINS> {
+    type Color = Rgb565;
+    type Error = Error;
+
+    fn draw_iter<I>(&mut self, pixels: I) -> Result<(), Self::Error>
     where
-        T: IntoIterator<Item = Pixel<Rgb565>>,
+        I: IntoIterator<Item = Pixel<Self::Color>>,
     {
-        // This table remaps linear input values
-        // (the numbers we’d like to use; e.g. 127 = half brightness)
-        // to nonlinear gamma-corrected output values
-        // (numbers producing the desired effect on the LED;
-        // e.g. 36 = half brightness).
-        const GAMMA8: [u8; 256] = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4,
-            4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 9, 9, 9, 10, 10, 10, 11, 11, 11,
-            12, 12, 13, 13, 13, 14, 14, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 21, 22,
-            22, 23, 24, 24, 25, 25, 26, 27, 27, 28, 29, 29, 30, 31, 32, 32, 33, 34, 35, 35, 36, 37,
-            38, 39, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 50, 51, 52, 54, 55, 56, 57, 58,
-            59, 60, 61, 62, 63, 64, 66, 67, 68, 69, 70, 72, 73, 74, 75, 77, 78, 79, 81, 82, 83, 85,
-            86, 87, 89, 90, 92, 93, 95, 96, 98, 99, 101, 102, 104, 105, 107, 109, 110, 112, 114,
-            115, 117, 119, 120, 122, 124, 126, 127, 129, 131, 133, 135, 137, 138, 140, 142, 144,
-            146, 148, 150, 152, 154, 156, 158, 160, 162, 164, 167, 169, 171, 173, 175, 177, 180,
-            182, 184, 186, 189, 191, 193, 196, 198, 200, 203, 205, 208, 210, 213, 215, 218, 220,
-            223, 225, 228, 231, 233, 236, 239, 241, 244, 247, 249, 252, 255,
-        ];
-        for Pixel(coord, color) in item_pixels {
-            let row = coord[1] % NUM_ROWS as u32;
+        for Pixel(coord, color) in pixels {
+            let row = coord[1] % NUM_ROWS as i32;
             let data = &mut self.data[row as usize][coord[0] as usize];
-            if coord[1] >= NUM_ROWS as u32 {
+            if coord[1] >= NUM_ROWS as i32 {
                 data.3 = GAMMA8[color.r() as usize];
                 data.4 = GAMMA8[color.g() as usize];
                 data.5 = GAMMA8[color.b() as usize];
@@ -394,15 +420,6 @@ impl<PINS: Outputs> Drawing<Rgb565> for Hub75<PINS> {
                 data.2 = GAMMA8[color.b() as usize];
             }
         }
-    }
-}
-
-// TODO Does it make sense to include this?
-impl<PINS: Outputs> SizedDrawing<Rgb565> for Hub75<PINS> {
-    fn draw_sized<T>(&mut self, item_pixels: T)
-    where
-        T: IntoIterator<Item = Pixel<Rgb565>> + Dimensions,
-    {
-        self.draw(item_pixels);
+        Ok(())
     }
 }
