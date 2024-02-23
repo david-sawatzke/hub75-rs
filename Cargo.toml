@@ -4,9 +4,7 @@ version = "0.1.1"
 authors = ["David Sawatzke <david-sawatzke@users.noreply.github.com>"]
 edition = "2018"
 categories = ["embedded", "no-std"]
-keywords = [
-    "embedded-graphics",
-    "embedded-hal-driver"]
+keywords = ["embedded-graphics", "embedded-hal-driver"]
 description = "A driver for hub75 rgb matrix displays"
 documentation = "https://docs.rs/crate/hub75"
 license = "MIT OR Apache-2.0"
@@ -14,8 +12,8 @@ readme = "README.md"
 repository = "https://github.com/david-sawatzke/hub75-rs"
 
 [dependencies]
-embedded-hal = "0.2.3"
-embedded-graphics = "0.5.2"
+embedded-hal = "0.2"
+embedded-graphics-core = "0.4"
 
 [features]
 size-64x64 = []
